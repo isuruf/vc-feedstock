@@ -267,25 +267,12 @@ def fix_filename(source):
             new_fname = fname
     os.chdir(cwd)
 
-def copy_vcomp(env):
+def copy_dll(env, glob_str):
     cwd = os.getcwd()
     os.chdir(os.path.join(env.src_dir, "dest"))
     os.makedirs(env.library_bin, exist_ok=True)
     os.makedirs(env.prefix, exist_ok=True)
-    for fname in glob("vcomp*.dll"):
-        print(f"Copying DLL: {fname}")
-        shutil.copyfile(fname, os.path.join(env.library_bin, fname))
-        shutil.copyfile(fname, os.path.join(env.prefix, fname))
-    os.chdir(cwd)
-
-def copy_runtime(env):
-    cwd = os.getcwd()
-    os.chdir(os.path.join(env.src_dir, "dest"))
-    os.makedirs(env.library_bin, exist_ok=True)
-    os.makedirs(env.prefix, exist_ok=True)
-    for fname in glob("*.dll"):
-        if fname in glob("vcomp*.dll"):
-            continue
+    for fname in glob(glob_str):
         print(f"Copying DLL: {fname}")
         shutil.copyfile(fname, os.path.join(env.library_bin, fname))
         shutil.copyfile(fname, os.path.join(env.prefix, fname))
@@ -345,6 +332,9 @@ def main():
         "--install-vcomp", help="install OpenMP runtimes to LIBRARY_BIN", action="store_true"
     )
     parser.add_argument(
+        "--install-vcamp", help="install OpenAMP C++ runtimes to LIBRARY_BIN", action="store_true"
+    )
+    parser.add_argument(
         "--activate", help="install activate.bat", action="store_true"
     )
     parser.add_argument(
@@ -368,9 +358,9 @@ def main():
     )
     args = parser.parse_args()
 
-    if not (args.extract or args.activate or args.install_vcomp or args.install_runtime):
+    if not (args.extract or args.activate or args.install_vcomp or args.install_runtime or args.install_vcamp):
         parser.print_help()
-        print("Need one of --extract, --activate, --install-vcomp, --install-runtime")
+        print("Need one of --extract, --activate, --install-vcomp, --install-vcamp, --install-runtime")
         sys.exit(1)
 
     try:
@@ -393,9 +383,11 @@ def main():
         else:
             raise RuntimeError(f"Architecture {args.target_platform} not supported")
     elif args.install_vcomp:
-        copy_vcomp(env)
+        copy_dll(env, "vcomp*.dll")
+    elif args.install_vcamp:
+        copy_dll(env, "vcamp*.dll")
     elif args.install_runtime:
-        copy_runtime(env)
+        copy_dll(env, "*.dll")
     elif args.activate:
         # Populate the activate.bat template, which is used to include
         # the Visual Studio tools into the conda environment.
